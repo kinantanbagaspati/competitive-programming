@@ -1,0 +1,48 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define pll pair<long long, long long>
+
+const long long maxn = 131072;
+
+long long n, k, ans;
+vector<long long> al[maxn];
+bool vis[maxn];
+
+void init(){
+    cin >> n >> k; ans = n;
+    vis[n] = false;
+    long long u, v, w;
+    for(int i=1; i<n; i++){
+        cin >> u >> v >> w;
+        al[u].push_back(v);
+        al[v].push_back(u);
+        vis[i] = false;
+    }
+    while(k--){
+        cin >> w;
+        vis[w] = true;
+    }
+}
+
+void dfs(long long node){
+    vis[node] = true; ans--;
+    for(int i=0; i<al[node].size(); i++){
+        long long to = al[node][i];
+        if(!vis[to]){
+            dfs(to);
+        }
+    }
+}
+
+int main(){
+    ios_base::sync_with_stdio(false);cin.tie(0);cout.tie(0);
+    init();
+    cout << ans << endl;
+    for(int i=1; i<=n; i++){
+        if(al[i].size() == 1 && !vis[i]){
+            dfs(i);
+            cout << i << " " << ans << endl;
+        }
+    }
+    cout << ans << endl;
+}
