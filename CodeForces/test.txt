@@ -1,0 +1,17 @@
+y_test_predict = []
+acc_test_predict = 0
+y_test_proba = []
+acc_test_proba = 0
+for i in range(len(X_test)):
+  predict = lr_predict(X_test[i])
+  label = 0 if predict < 0.5 else 1
+  y_test_predict.append(label)
+  acc_test_predict += (1 - abs(y_test[i] - label))
+  
+  y_test_proba.append([1 - predict, predict])
+  acc_test_proba += (1 - abs(y_test[i] - predict))
+
+acc_test_predict /= len(X_test)
+acc_test_proba /= len(X_test)
+
+print(acc_test_predict, acc_test_proba)
