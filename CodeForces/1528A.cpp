@@ -3,66 +3,37 @@ using namespace std;
 #define pll pair<long long, long long>
 
 const long long maxn = 131072;
-long long n, m, x, u, warna[maxn];
-bool nyala[maxn];
-vector<long long> nyambung[maxn], al[maxn];
-vector<bool> beda[maxn];
+long long t, n, lohi[maxn][2], ans[maxn][2], u, v;
+vector<long long> al[maxn];
 
-bool dfs(long long node){
+void dfs(int node, int par){
     for(int i=0; i<al[node].size(); i++){
-        long long to = al[node][i];
-        if(beda[node][i]){
-            if(warna[to] == 0){
-                warna[to] = -warna[node];
-                if(!dfs(to)){
-                    return false;
-                }
-            }else if(warna[to] == warna[node]){
-                return false;
-            }
-        }else{
-            if(warna[to] == 0){
-                warna[to] = warna[node];
-                if(!dfs(to)){
-                    return false;
-                }
-            }else if(warna[to] != warna[node]){
-                return false;
+        int to = al[node][i];
+        if(to != par){
+            dfs(to, node);
+            for(int j=0; j<2; j++){
+                ans[node][j] += max(abs(lohi[node][j] - lohi[to][0]) + ans[to][0], abs(lohi[node][j] - lohi[to][1]) + ans[to][1]);
             }
         }
     }
-    return true;
 }
 
 int main(){
     ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
-    cin >> n >> m;
-    for(int i=0; i<n; i++){
-        cin >> nyala[i]; nyala[i] = !nyala[i];
-    }
-    for(int i=0; i<m; i++){
-        cin >> x;
-        while(x--){
-            cin >> u; u--;
-            nyambung[u].push_back(i);
+    cin >> t;
+    while(t--){
+        cin >> n;
+        for(int i=1; i<=n; i++){
+            cin >> lohi[i][0] >> lohi[i][1];
+            ans[i][0] = 0; ans[i][1] = 0;
+            al[i].clear();
         }
-    }
-    for(int i=0; i<n; i++){
-        al[nyambung[i][0]].push_back(nyambung[i][1]);
-        beda[nyambung[i][0]].push_back(nyala[i]);
-
-        al[nyambung[i][1]].push_back(nyambung[i][0]);
-        beda[nyambung[i][1]].push_back(nyala[i]);
-
-    }
-    for(int i=0; i<m; i++){
-        if(warna[i] == 0){
-            warna[i] = 1;
-            if(!dfs(i)){
-                cout << "NO" << endl; return 0;
-            }
+        for(int i=1; i<n; i++){
+            cin >> u >> v;
+            al[u].push_back(v);
+            al[v].push_back(u);
         }
-        //cout << "warna " << i << ": " << warna[i] << endl;
+        dfs(1, 0);
+        cout << max(ans[1][0], ans[1][1]) << endl;
     }
-    cout << "YES" << endl; return 0;
 }

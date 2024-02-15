@@ -1,36 +1,101 @@
 #include<bits/stdc++.h>
 using namespace std;
-#define pll pair<long long, long long>
+#define ppll pair<long long, long long>
 
-const int maxn = 1024, maxm = 1024;
-const long long mod = 998244353, inv2 = (mod+1)/2;
-int n, a[maxn], maxchild[maxn], nbm;
-vector<int> child[maxn], factors[maxn], al[maxn];
-long long dp[maxn][2][maxm];
+const long long maxn = 262144, mod = 998244353;
+long long n, u, v, ans = 0; 
+long long a[maxn], depth[maxn], subtree[maxn], maxchild[maxn];
+vector<long long> al[maxn];
+map<long long, long long> info[32][4]; // 0 buat jml, 1 buat sigma depth, 2 buat sigma Y path
 
-void sieve(){
-    nbm = 0;
-    for(int i=2; i<maxn; i++){
-        if(factors[i].size() == 0){ // i prima
-            for(int j=i; j<maxn; j+=i){
-                factors[j].push_back(nbm);
+void dfsTree(long long node, long long par){
+    depth[node] = depth[par] + 1;
+    subtree[node] = 1;
+    for(int i=0; i<al[node].size(); i++){
+        long long to = al[node][i];
+        if(to != par){
+            dfsTree(to, node);
+            subtree[node] += subtree[to];
+            if(subtree[to] > subtree[maxchild[node]]){
+                maxchild[node] = to;
             }
-            nbm++;
         }
     }
-    /*
-    for(int i=0; i<20; i++){
-        cout << i << ":";
-        for(int j=0; j<factors[i].size(); j++){
-            cout << " " << factors[i][j];
-        }cout << endl;
-    }
-    */
 }
 
-void initTree(){
+void calcAns(long long node, long long stid){
+    //cout << "calcAns " << node << ' ' << stid << " dari " << ans << endl;
+    long long pkiri, pkanan, qkiri, qkanan;
+    //cout << "sebelum" << endl;
+    for(map<long long, long long>::iterator itr=info[stid+1][0].begin(); itr!=info[stid+1][0].end(); itr++){
+        // primanya itr->first
+        /*cout << itr->first << ": (";
+        cout << info[stid][0][itr->first] << ", " << info[stid][1][itr->first] << ", " << info[stid][2][itr->first];
+        cout << ") vs (";
+        cout << info[stid+1][0][itr->first] << ", " << info[stid+1][1][itr->first] << ", " << info[stid+1][2][itr->first];
+        cout << ")" << endl;*/
+        pkiri = info[stid][0][itr->first]; pkanan = itr->second;
+        qkiri = pkiri * (pkiri-1) / 2 % mod; qkanan = pkanan * (pkanan-1) / 2 % mod;
+        ans += (info[stid][2][itr->first] + (mod-depth[node]) * qkiri) % mod * pkanan % mod;
+        ans += (info[stid+1][1][itr->first] + (mod-depth[node]) * pkanan) % mod * qkiri % mod;
+        ans += (info[stid][1][itr->first] + (mod-depth[node]) * pkiri) % mod * qkanan % mod;
+        ans += (info[stid+1][2][itr->first] + (mod-depth[node]) * qkanan) % mod * pkiri % mod;
+        ans %= mod;
+    }
+    //cout << "sesudah" << endl;
+    for(map<long long, long long>::iterator itr=info[stid+1][0].begin(); itr!=info[stid+1][0].end(); itr++){
+        pkiri = info[stid][0][itr->first]; pkanan = itr->second;
+        info[stid][2][itr->first] += info[stid+1][2][itr->first];
+        info[stid][2][itr->first] += info[stid][1][itr->first] * pkanan % mod;
+        info[stid][2][itr->first] += info[stid+1][1][itr->first] * pkiri % mod;
+        info[stid][2][itr->first] += pkiri * pkanan % mod * (mod-depth[node]) % mod;
+        info[stid][2][itr->first] %= mod;
+        info[stid][1][itr->first] = (info[stid][1][itr->first] + info[stid+1][1][itr->first]) % mod;
+        info[stid][0][itr->first] = (info[stid][0][itr->first] + pkanan) % mod;
+        /*cout << itr->first << ": (";
+        cout << info[stid][0][itr->first] << ", " << info[stid][1][itr->first] << ", " << info[stid][2][itr->first];
+        cout << ")" << endl;*/
+    }
+    info[stid+1][0].clear();
+    info[stid+1][1].clear();
+    info[stid+1][2].clear();
+    //cout << "jadi " << ans << endl << endl;
+}
+
+void dfStL(long long node, long long par, long long stid){
+    if(maxchild[node] > 0){ // bukan leaf node
+        dfStL(maxchild[node], node, stid);
+        for(int i=0; i<al[node].size(); i++){
+            long long to = al[node][i];
+            if(to != par && to != maxchild[node]){
+                dfStL(to, node, stid+1);
+                calcAns(node, stid);
+            }
+        }
+    }
+    for(int i=2; i*i<=a[node]; i++){
+        if(a[node]%i == 0){
+            info[stid+1][0][i] = 1;
+            info[stid+1][1][i] = depth[node];
+            info[stid+1][2][i] = 0;
+        }
+        while(a[node]%i == 0){
+            a[node] /= i;
+        }
+    }
+    if(a[node] > 1){
+        info[stid+1][0][a[node]] = 1;
+        info[stid+1][1][a[node]] = depth[node];
+        info[stid+1][2][a[node]] = 0;
+    }
+    //cout << node << ": " << ans << " -> ";
+    calcAns(node, stid);
+    //cout << ans << endl;
+}
+
+int main(){
+    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
     cin >> n;
-    int u, v;
     for(int i=1; i<=n; i++){
         cin >> a[i];
     }
@@ -39,68 +104,7 @@ void initTree(){
         al[u].push_back(v);
         al[v].push_back(u);
     }
-}
-int dfsTree(int par, int node){
-    int to, maxdp = 0, curdp, res = 0;
-    for(int i=0; i<al[node].size(); i++){
-        to = al[node][i];
-        if(par != to){
-            child[node].push_back(to);
-            curdp = dfsTree(node, to);
-            res += curdp;
-            if(curdp > maxdp){
-                maxdp = curdp;
-                maxchild[node] = to;
-            }
-        }
-    }
-    return res;
-}
-
-long long ans = 0, cur;
-void dfsNgitung(int node, bool nambah){
-    // ngitung par
-    for(int i=0; i<factors[a[node]].size(); i++){
-        dp[node][0][factors[a[node]][i]]++;
-    }
-    for(int i=0; i<child[node].size(); i++){
-        int to = child[node][i];
-        dfsNgitung(to, false);
-        for(int j=0; j<maxm; j++){
-            dp[node][0][j] += dp[to][0][j];
-            dp[node][1][j] = (dp[node][1][j] + dp[to][0][j] + dp[to][1][j]) % mod;
-        }
-    }
-    cout << "kelar ngitung " << node << endl;
-    for(int i=0; i<5; i++){
-        cout << i << ": " << dp[node][0][i] << dp[node][1][i] << endl;
-    }
-    for(int i=0; i<child[node].size(); i++){
-        int to = child[node][i];
-        for(int j=0; j<maxm; j++){
-            cur = (dp[node][0][j] + mod - dp[to][0][j]) % mod;
-            cur = (cur * (cur-1) / 2) % mod;
-            cur = cur * (dp[to][0][j] + dp[to][1][j]) % mod;
-            ans = (ans + cur) % mod;
-
-            cur = (dp[to][1][j] + dp[to][0][j] * inv2) % mod;
-            cur = cur * (dp[node][0][j] + mod - dp[to][0][j]) % mod;
-            ans = (ans + cur) % mod;
-        }
-    }
-    cout << "ans: " << ans << endl << endl;
-}
-
-int main(){
-    ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
-    sieve();
-    initTree();
-    int dummy = dfsTree(0, 1);
-    // tes maxchild
-    for(int i=1; i<=n; i++){
-        cout << maxchild[i] << " ";
-    }cout << endl;
-
-    dfsNgitung(1, false);
+    dfsTree(1, 0);
+    dfStL(1, 0, 0);
     cout << ans << endl;
 }

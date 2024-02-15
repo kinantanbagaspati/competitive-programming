@@ -4,12 +4,25 @@ using namespace std;
 #define fi first 
 #define se second
 
-long long t, n, m, a[2048][16], pwn;
+long long t, n, m, a[2048][16], b[16], pwn;
 pair<p4, long long> srt[2048];
-long long ans[16][(1<<16)];
+long long ans[3][(1<<12)];
+vector<int> disjoint[(1<<12)];
+
+int shift(int x){
+    x += (x%2) * (1<<n);
+    return x/2;
+}
 
 int main(){
     ios_base::sync_with_stdio(0);cin.tie(0);cout.tie(0);
+    for(int i=0; i<(1<<12); i++){
+        for(int j=0; j<(1<<12); j++){
+            if((i&j)==0){
+                disjoint[i].push_back(j);
+            }
+        }
+    }
     cin >> t;
     while(t--){
         cin >> n >> m; pwn = (1<<n);
@@ -19,47 +32,55 @@ int main(){
             }
         }
         for(int i=0; i<m; i++){
+            for(int j=0; j<n; j++){
+                b[j] = a[i][j];
+            }
             for(int j=n; j<16; j++){
-                a[i][j] = 0;
+                b[j] = 0;
             }
-        }
-        for(int i=0; i<=n; i++){
-            for(int j=0; j<pwn; j++){
-                ans[i][j] = 0;
-            }
-        }
-        for(int i=0; i<m; i++){
-            sort(a[i], a[i]+n);
-            srt[i].fi.fi.fi = - (a[i][11] * 1e12 + a[i][10] * 1e6 + a[i][9]);
-            srt[i].fi.fi.se = - (a[i][8] * 1e12 + a[i][7] * 1e6 + a[i][6]);
-            srt[i].fi.se.fi = - (a[i][5] * 1e12 + a[i][4] * 1e6 + a[i][3]);
-            srt[i].fi.se.se = - (a[i][2] * 1e12 + a[i][1] * 1e6 + a[i][0]);
+            sort(b, b+n);
+            srt[i].fi.fi.fi = - (b[11] * 1e12 + b[10] * 1e6 + b[9]);
+            srt[i].fi.fi.se = - (b[8] * 1e12 + b[7] * 1e6 + b[6]);
+            srt[i].fi.se.fi = - (b[5] * 1e12 + b[4] * 1e6 + b[3]);
+            srt[i].fi.se.se = - (b[2] * 1e12 + b[1] * 1e6 + b[0]);
             srt[i].se = i;
         }
         sort(srt, srt + m);
-        //cout << srt[0].fi.fi.fi << " " << srt[0].fi.fi.se << " " << srt[0].fi.se.fi << " " << srt[0].fi.se.se << " " << srt[0].se << endl;
-        //cout << "ans" << endl;
-        for(int i=0; i<min(n, m); i++){
-            for(int j=0; j<pwn; j++){
-                long long sum = 0, cpy = j;
-                for(int k=0; k<n; k++){
-                    if(cpy%2) sum += a[srt[i].se][k];
-                    cpy /= 2;
-                } cpy = pwn-1-j;
-                for(int k=cpy; k>0; k=((k-1) & cpy)){
-                    ans[i+1][k+j] = max(sum + ans[i][k], ans[i+1][k+j]);
-                }
-                ans[i+1][j] = max(sum, ans[i+1][j]);
-            }
-            for(int j=0; j<pwn; j++){
-                long long cpy = j;
-                for(int k=0; k<n; k++){
-                    cpy = ((cpy%2)*pwn + cpy)/2;
-                    ans[i+1][j] = max(ans[i+1][cpy], ans[i+1][j]);
-                }
-                //cout << ans[i+1][j] << " ";
-            }//cout << endl;
+        
+        m = min(m, n); // take only m
+        for(int i=0; i<pwn; i++){
+            ans[0][i] = 0;
         }
-        cout << ans[min(n, m)][pwn-1] << endl;
+        for(int i=0; i<m; i++){
+            // kosongin
+            for(int j=0; j<pwn; j++){
+                ans[(i+1)%2][j] = 0;
+                ans[2][j] = 0;
+            }
+            // masukin 2
+            for(int j=0; j<pwn; j++){
+                int cpy = j;
+                long long sum = 0;
+                for(int k=0; k<n; k++){
+                    if(cpy%2){
+                        sum += a[srt[i].se][k];
+                    } cpy /= 2;
+                }
+                ans[2][j] = max(ans[2][j], sum);
+                cpy = shift(j);
+                while(cpy != j){
+                    ans[2][cpy] = max(ans[2][cpy], sum);
+                    cpy = shift(cpy);
+                }
+            }
+            // tambahin
+            for(int j=0; j<pwn; j++){
+                for(int k=0; k<disjoint[j].size() && j+disjoint[j][k]<pwn; k++){
+                    int temp = j+disjoint[j][k];
+                    ans[(i+1)%2][temp] = max(ans[(i+1)%2][temp], ans[i%2][j] + ans[2][disjoint[j][k]]);
+                }
+            }
+        }
+        cout << ans[m%2][pwn-1] << endl;
     }
 }
